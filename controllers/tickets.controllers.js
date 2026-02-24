@@ -1,35 +1,9 @@
-
-
-// // UPDATE
-// export const updateProduct = async (req, res) => {
-//   try {
-//     const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
-//       new: true,
-//     });
-
-//     res.json(product);
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
-// // DELETE
-// export const deleteProduct = async (req, res) => {
-//   try {
-//     await Product.findByIdAndDelete(req.params.id);
-
-//     res.json({ msg: "Product deleted" });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
 import Ticket from "../models/tickets.model.js";
 import User from "../models/users.model.js";
 
 export const createTicket = async (req, res) => {
   try {
-    const { title, description, priority  } = req.body;
+    const { title, description, priority } = req.body;
 
     if (!title || !description || !priority) {
       return res.status(400).json({
@@ -50,12 +24,14 @@ export const createTicket = async (req, res) => {
       description,
       priority,
       status: "OPEN",
-      createdBy: user.id,
-      assignedTo: null,       
+      createdBy: user._id,
+      assignedTo: null,
     });
 
-    return res.status(201).json({ msg: "Created",ticket });
+    return res.status(201).json({ msg: "Created", ticket });
   } catch (error) {
+    console.error("CREATE TICKET ERROR:", error);
+
     return res.status(403).json({
       msg: "Forbidden",
     });
@@ -82,7 +58,7 @@ export const getTickets = async (req, res) => {
 
     const tickets = await Ticket.find(filter);
 
-    return res.status(200).json({ msg: "OK",tickets });
+    return res.status(200).json({ msg: "OK", tickets });
   } catch (error) {
     console.error(error);
     return res.status(401).json({
@@ -91,14 +67,13 @@ export const getTickets = async (req, res) => {
   }
 };
 
-
 export const updateAssignTickets = async (req, res) => {
   try {
     const user = req.user;
 
     if (!["MANAGER", "SUPPORT"].includes(user.role)) {
       return res.status(401).json({
-        msg: "Unauhorized",
+        msg: "Unauthorized",
       });
     }
 
@@ -108,13 +83,16 @@ export const updateAssignTickets = async (req, res) => {
       });
     }
 
-    const updatedTicket = await Ticket.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
+    const { assignedTo } = req.body;
+    const updatedTicket = await Ticket.findByIdAndUpdate(
+      req.params.id,
+      { assignedTo },
+      {
+        new: true,
+      },
+    );
 
-    return res.status(200).json({msg: "OK",updatedTicket});
-
-
+    return res.status(200).json({ msg: "OK", updatedTicket });
   } catch (error) {
     console.error(error);
     return res.status(403).json({
@@ -123,4 +101,39 @@ export const updateAssignTickets = async (req, res) => {
   }
 };
 
-export const updateStatusTickets = async (req, res) => {};
+export const updateStatusTickets = async (req, res) => {
+    
+  try {
+    const user = req.user;
+
+    if (!["MANAGER", "SUPPORT"].includes(user.role)) {
+      return res.status(401).json({
+        msg: "Unauthorized",
+      });
+    }
+
+    if (!req.params.id) {
+      return res.status(400).json({
+        msg: "Bad Request",
+      });
+    }
+
+    const { status } = req.body;
+    const updatedTicket = await Ticket.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      {
+        new: true,
+      },
+    );
+
+    return res.status(200).json({ msg: "OK", updatedTicket });
+  } catch (error) {
+    console.error(error);
+    return res.status(403).json({
+      msg: "Forbidden",
+    });
+  }
+};
+
+
